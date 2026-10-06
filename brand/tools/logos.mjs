@@ -31,7 +31,7 @@ const LEAF = 'M52 27 C51 15 59 6 73 5 C74 18 65 27 52 27 Z'
 export const symbols = {
   // A · Manzana: dos mitades separadas por un hueco — la droguería y la casa; el
   // asesoramiento cruza de una a otra. La hoja: lo natural, el crecimiento.
-  manzana: (fg = C.pino, accent = C.ambar, id = 'm') => `
+  apple: (fg = C.pino, accent = C.ambar, id = 'm') => `
     <defs>
       <clipPath id="${id}L"><rect x="0" y="0" width="48.2" height="100"/></clipPath>
       <clipPath id="${id}R"><rect x="51.8" y="0" width="48.2" height="100"/></clipPath>
@@ -42,7 +42,7 @@ export const symbols = {
 
   // B · Ritmos: cuatro hojas alrededor de un centro — los cuatro ritmos
   // (Río, Terreno, Cultivo, Cosecha). Una, en ámbar: el ciclo en curso.
-  ritmos: (fg = C.pino, accent = C.ambar) => {
+  rhythms: (fg = C.pino, accent = C.ambar) => {
     const leaf = 'M50 45 C33 39 29 14 46 5 C58 13 61 36 50 45 Z'
     return [45, 135, 225, 315]
       .map((deg, i) => `<path d="${leaf}" transform="rotate(${deg} 50 50)" fill="${i === 0 ? accent : fg}"/>`)
@@ -51,7 +51,7 @@ export const symbols = {
 
   // C · Brote: una N trazada de un solo gesto, sin levantar el lápiz —
   // continuidad— que termina en una hoja: lo que crece después.
-  brote: (fg = C.pino, accent = C.ambar) => `
+  sprout: (fg = C.pino, accent = C.ambar) => `
     <path d="M24 80 V26 L74 76 V40" stroke="${fg}" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M74 40 C72 24 80 12 95 10 C97 26 88 38 74 40 Z" fill="${accent}"/>`,
 }
@@ -59,9 +59,9 @@ export const symbols = {
 // ------------------------------------------------------------ logotipos
 
 const words = {
-  manzana: { font: FONTS.fraunces, text: 'Newtons', size: 64, tracking: -0.5 },
-  ritmos: { font: FONTS.manrope, text: 'newtons', size: 62, tracking: -1.5 },
-  brote: { font: FONTS.outfit, text: 'newtons', size: 66, tracking: -1 },
+  apple: { font: FONTS.fraunces, text: 'Newtons', size: 64, tracking: -0.5 },
+  rhythms: { font: FONTS.manrope, text: 'newtons', size: 62, tracking: -1.5 },
+  sprout: { font: FONTS.outfit, text: 'newtons', size: 66, tracking: -1 },
 }
 
 function wordPath(key, x, baseline, color) {
@@ -105,9 +105,9 @@ for (const key of Object.keys(symbols)) {
   const dir = `${OUT}/${key}`
   fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(`${dir}/newtons-${key}-color.svg`, lockup(key))
-  fs.writeFileSync(`${dir}/newtons-${key}-negativo.svg`, lockup(key, { fg: C.white, accent: C.ambar, text: C.white, bg: C.pino }))
-  fs.writeFileSync(`${dir}/newtons-${key}-monocromo.svg`, lockup(key, { fg: C.tinta, accent: C.tinta, text: C.tinta }))
-  fs.writeFileSync(`${dir}/newtons-${key}-simbolo.svg`, mark(key))
-  fs.writeFileSync(`${dir}/newtons-${key}-icono-app.svg`, mark(key, { bg: C.crema, size: 512 }))
+  fs.writeFileSync(`${dir}/newtons-${key}-negative.svg`, lockup(key, { fg: C.white, accent: C.ambar, text: C.white, bg: C.pino }))
+  fs.writeFileSync(`${dir}/newtons-${key}-mono.svg`, lockup(key, { fg: C.tinta, accent: C.tinta, text: C.tinta }))
+  fs.writeFileSync(`${dir}/newtons-${key}-symbol.svg`, mark(key))
+  fs.writeFileSync(`${dir}/newtons-${key}-app-icon.svg`, mark(key, { bg: C.crema, size: 512 }))
 }
 console.log('ok')

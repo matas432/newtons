@@ -1,17 +1,17 @@
-# Identidad visual (propuesta v0.1)
+# Visual identity (proposal v0.1)
 
-Tres opciones de logotipo; la elección está pendiente. Recomendada: **ritmos**.
-Detalle en el documento interno *Propuesta de sitio web y logotipo v0.1*.
+Three logo options; the choice is pending. Recommended: **rhythms**.
+Details in the internal document *Website and logo proposal v0.1*.
 
-| Carpeta | Opción |
+| Folder | Option |
 |---|---|
-| `logo/ritmos/` | B · Ritmos: cuatro hojas = los cuatro ritmos (recomendada) |
-| `logo/manzana/` | A · Manzana |
-| `logo/brote/` | C · Brote |
+| `logo/rhythms/` | B · Rhythms: four leaves = the four rhythms (recommended) |
+| `logo/apple/` | A · Apple |
+| `logo/sprout/` | C · Sprout |
 
-Cada opción: `color`, `negativo`, `monocromo`, `simbolo` e `icono-app` (SVG, texto convertido a trazos).
+Each option: `color`, `negative`, `mono`, `symbol` and `app-icon` (SVG, text converted to outlines).
 
-Paleta: Pino `#1F4D45` · Ámbar `#E39B3A` · Salvia `#DCE8E1` · Crema `#F7F4EE` · Tinta `#17232E`.
-Tipografías (SIL OFL): Fraunces (titulares), Manrope (texto e interfaz).
+Palette: Pine `#1F4D45` · Amber `#E39B3A` · Sage `#DCE8E1` · Cream `#F7F4EE` · Ink `#17232E`.
+Typefaces (SIL OFL): Fraunces (headings), Manrope (text and interface).
 
-`tools/logos.mjs` regenera los SVG (requiere `opentype.js` y los paquetes `@fontsource/fraunces`, `@fontsource/manrope` y `@fontsource/outfit`).
+`tools/logos.mjs` regenerates the SVGs (needs `opentype.js` and the `@fontsource/fraunces`, `@fontsource/manrope` and `@fontsource/outfit` packages).
