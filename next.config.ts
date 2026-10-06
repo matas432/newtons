@@ -7,6 +7,9 @@ const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
+  // Permite abrir el servidor de desarrollo desde otros equipos de la red
+  // Tailscale (p. ej. el Mac). Lista separada por comas en DEV_ORIGINS.
+  allowedDevOrigins: (process.env.DEV_ORIGINS ?? '100.108.8.23,matthias-linux').split(',').map((s) => s.trim()),
   images: {
     localPatterns: [
       {
