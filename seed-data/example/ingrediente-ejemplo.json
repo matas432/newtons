@@ -1,0 +1,29 @@
+{
+  "slug": "ingrediente-ejemplo",
+  "name": "Ingrediente de ejemplo",
+  "scientificName": "Exemplum fictum",
+  "category": "plant-extract",
+  "editorialStatus": "in-review",
+  "isFictional": true,
+  "summary": "Ficha ficticia para probar la plataforma. No describe ninguna sustancia real.",
+  "whatIsShort": "Contenido de demostración. Sustitúyelo por una ficha real cargada desde el gestor.",
+  "primaryDomain": "DF-4",
+  "mechanisms": "Texto de ejemplo.",
+  "goalTechnical": "Texto de ejemplo.",
+  "goalEveryday": "Texto de ejemplo.",
+  "reviewQuestion": "¿Ha cambiado algo que puedas observar?",
+  "referenceDose": { "amount": 500, "unit": "mg", "basis": "extract", "frequency": "per-day", "refersTo": "de extracto (ejemplo)" },
+  "block": "A",
+  "mealRelation": "fasting",
+  "usageInstructions": "Texto de ejemplo.",
+  "rhythm": "cultivo",
+  "observations": [
+    { "text": "Situación de ejemplo 1.", "answerType": "scale" },
+    { "text": "Situación de ejemplo 2.", "answerType": "yes-no" }
+  ],
+  "tolerability": "Texto de ejemplo.",
+  "alertSummary": { "status": "insufficient", "text": "Ficha ficticia." },
+  "interactionSummary": { "status": "insufficient", "text": "Ficha ficticia." },
+  "evidenceSummary": "Ficha ficticia.",
+  "regulatoryStatusCH": "pending"
+}
