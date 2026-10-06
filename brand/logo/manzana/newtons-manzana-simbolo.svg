@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  
+  <g transform="translate(0 0) scale(1)">
+    <defs>
+      <clipPath id="manzanamkvlfsL"><rect x="0" y="0" width="48.2" height="100"/></clipPath>
+      <clipPath id="manzanamkvlfsR"><rect x="51.8" y="0" width="48.2" height="100"/></clipPath>
+    </defs>
+    <path d="M50 30 C60 19 88 19 92 46 C96 71 79 94 64 92 C58 91 55 88 50 88 C45 88 42 91 36 92 C21 94 4 71 8 46 C12 19 40 19 50 30 Z" fill="#1F4D45" clip-path="url(#manzanamkvlfsL)"/>
+    <path d="M50 30 C60 19 88 19 92 46 C96 71 79 94 64 92 C58 91 55 88 50 88 C45 88 42 91 36 92 C21 94 4 71 8 46 C12 19 40 19 50 30 Z" fill="#E39B3A" clip-path="url(#manzanamkvlfsR)"/>
+    <path d="M52 27 C51 15 59 6 73 5 C74 18 65 27 52 27 Z" fill="#1F4D45"/></g>
+</svg>
