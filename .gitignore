@@ -53,3 +53,6 @@ node_modules/
 *.docx
 *.pdf
 /seed-data/private/
+
+# Maquetas locales de la web (vista previa, no forman parte del producto)
+/public/mockup/
