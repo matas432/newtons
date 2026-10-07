@@ -8,8 +8,8 @@ export const Media: CollectionConfig = {
   admin: { group: 'Sistema' },
   access: {
     read: anyone,
-    create: ({ req: { user } }) => isEditorial(user) || hasRole(user, 'chain-admin'),
-    update: ({ req: { user } }) => isEditorial(user) || hasRole(user, 'chain-admin'),
+    create: ({ req: { user } }) => isEditorial(user) || hasRole(user, 'operations'),
+    update: ({ req: { user } }) => isEditorial(user) || hasRole(user, 'operations'),
     delete: ({ req: { user } }) => isEditorial(user),
   },
   fields: [{ name: 'alt', label: 'Texto alternativo', type: 'text', required: true }],

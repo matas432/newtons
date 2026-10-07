@@ -1,12 +1,12 @@
 import type { CollectionConfig } from 'payload'
 
-import { anyStaff, editorial } from '@/access'
+import { anyone, editorial } from '@/access'
 
 export const Sources: CollectionConfig = {
   slug: 'sources',
   labels: { singular: 'Fuente', plural: 'Fuentes' },
   admin: { group: 'Conocimiento', useAsTitle: 'title', defaultColumns: ['title', 'kind', 'year'] },
-  access: { read: anyStaff, create: editorial, update: editorial, delete: editorial },
+  access: { read: anyone, create: editorial, update: editorial, delete: editorial },
   fields: [
     { name: 'title', label: 'Título', type: 'text', required: true },
     {

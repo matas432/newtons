@@ -5,7 +5,7 @@ import { dailyTotals, type DoseLine } from '@/lib/doses'
 const line = (over: Partial<DoseLine>): DoseLine => ({
   planItemId: 1,
   productName: 'A',
-  servingsPerIntake: 1,
+  servingsPerDay: 1,
   scheduled: true,
   formulationVerified: true,
   composition: [{ ingredientId: 'vitD', amount: 100, unit: 'ug', basis: 'active' }],
@@ -23,7 +23,7 @@ describe('suma de ingredientes por día', () => {
   })
 
   it('separa programado y confirmado', () => {
-    const r = dailyTotals([line({ servingsPerIntake: 2 })], [{ planItemId: 1, status: 'taken', servings: 1 }])
+    const r = dailyTotals([line({ servingsPerDay: 2 })], [{ planItemId: 1, status: 'taken', servings: 1 }])
     expect(r.totals[0]).toMatchObject({ scheduled: 200, confirmed: 100 })
   })
 

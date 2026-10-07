@@ -1,27 +1,29 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { de } from '@payloadcms/translations/languages/de'
+import { en } from '@payloadcms/translations/languages/en'
 import { es } from '@payloadcms/translations/languages/es'
 import path from 'path'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
+import { CustomerProducts } from './collections/care/CustomerProducts'
 import { IntakeLogs } from './collections/care/IntakeLogs'
 import { PlanItems } from './collections/care/PlanItems'
 import { Plans } from './collections/care/Plans'
+import { ProductSubmissions } from './collections/care/ProductSubmissions'
 import { Reviews } from './collections/care/Reviews'
 import { SymptomReports } from './collections/care/SymptomReports'
 import { Formulations } from './collections/catalog/Formulations'
 import { Products } from './collections/catalog/Products'
-import { Assortment } from './collections/chains/Assortment'
-import { Chains } from './collections/chains/Chains'
-import { Stores } from './collections/chains/Stores'
-import { Users } from './collections/chains/Users'
+import { Suppliers } from './collections/catalog/Suppliers'
+import { Orders } from './collections/commerce/Orders'
+import { PaymentEvents } from './collections/commerce/PaymentEvents'
 import { Consents } from './collections/customers/Consents'
-import { CustomerLinks } from './collections/customers/CustomerLinks'
 import { Customers } from './collections/customers/Customers'
-import { Invitations } from './collections/customers/Invitations'
+import { Lots } from './collections/inventory/Lots'
+import { StockMovements } from './collections/inventory/StockMovements'
 import { Blocks } from './collections/knowledge/Blocks'
 import { Domains } from './collections/knowledge/Domains'
 import { Ingredients } from './collections/knowledge/Ingredients'
@@ -29,6 +31,9 @@ import { Rhythms } from './collections/knowledge/Rhythms'
 import { Sources } from './collections/knowledge/Sources'
 import { AuditLog } from './collections/system/AuditLog'
 import { Media } from './collections/system/Media'
+import { PrivateFiles } from './collections/system/PrivateFiles'
+import { Users } from './collections/team/Users'
+import { ShopSettings } from './globals/ShopSettings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -39,19 +44,20 @@ export default buildConfig({
     meta: { titleSuffix: ' · Newtons' },
     importMap: { baseDir: path.resolve(dirname) },
   },
-  // Panel en español por defecto (y alemán). Sin inglés: un navegador en
-  // inglés recibe el panel en español.
+  // Idioma del panel: el del navegador entre español, alemán e inglés.
   i18n: {
-    supportedLanguages: { es, de },
+    supportedLanguages: { es, de, en },
     fallbackLanguage: 'es',
   },
-  // Español: idioma editorial de origen. Alemán de Suiza: idioma comercial
-  // inicial. Sin fallback: un idioma no aprobado no se rellena con otro
-  // (Libro 2, n.º 36).
+  // Contenido: español = idioma editorial de origen (interno); alemán =
+  // idioma principal para clientes; inglés = secundario. Francés e italiano
+  // se pueden añadir aquí. Sin fallback: un idioma no aprobado no se rellena
+  // con otro (decisión del 7-10-2026).
   localization: {
     locales: [
-      { label: 'Español', code: 'es' },
-      { label: 'Deutsch (Schweiz)', code: 'de-CH' },
+      { label: 'Español (editorial)', code: 'es' },
+      { label: 'Deutsch', code: 'de' },
+      { label: 'English', code: 'en' },
     ],
     defaultLocale: 'es',
     fallback: false,
@@ -66,25 +72,30 @@ export default buildConfig({
     // Catálogo
     Products,
     Formulations,
-    // Droguerías
-    Chains,
-    Stores,
-    Assortment,
-    Users,
-    // Clientes y planes
+    Suppliers,
+    ProductSubmissions,
+    // Inventario
+    Lots,
+    StockMovements,
+    // Pedidos
+    Orders,
+    PaymentEvents,
+    // Clientes y su seguimiento (solo visible para cada cliente)
     Customers,
-    CustomerLinks,
-    Invitations,
     Consents,
+    CustomerProducts,
     Plans,
     PlanItems,
     IntakeLogs,
     Reviews,
     SymptomReports,
     // Sistema
+    Users,
     AuditLog,
     Media,
+    PrivateFiles,
   ],
+  globals: [ShopSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: { outputFile: path.resolve(dirname, 'payload-types.ts') },

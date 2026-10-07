@@ -1,16 +1,16 @@
-import type { CollectionConfig } from 'payload'
+import type { AccessResult, CollectionConfig } from 'payload'
 
 import { hasRole, isCustomer, nobody } from '@/access'
 
-/** Consentimientos y versiones (Libro 1, cap. 11). Se revocan; no se borran. */
+/** Consentimientos y versiones. Se revocan; no se borran. */
 export const Consents: CollectionConfig = {
   slug: 'consents',
   labels: { singular: 'Consentimiento', plural: 'Consentimientos' },
-  admin: { group: 'Clientes y planes', useAsTitle: 'kind', defaultColumns: ['customer', 'kind', 'version', 'grantedAt', 'revokedAt'] },
+  admin: { group: 'Clientes', useAsTitle: 'kind', defaultColumns: ['customer', 'kind', 'version', 'grantedAt', 'revokedAt'] },
   access: {
-    read: ({ req: { user } }) => (isCustomer(user) ? { customer: { equals: user.id } } : hasRole(user, 'newtons-admin')),
+    read: ({ req: { user } }): AccessResult => (isCustomer(user) ? { customer: { equals: user.id } } : hasRole(user, 'admin')),
     create: ({ req: { user } }) => isCustomer(user),
-    update: ({ req: { user } }) => (isCustomer(user) ? { customer: { equals: user.id } } : false),
+    update: ({ req: { user } }): AccessResult => (isCustomer(user) ? { customer: { equals: user.id } } : false),
     delete: nobody,
   },
   hooks: {
@@ -30,12 +30,11 @@ export const Consents: CollectionConfig = {
       type: 'select',
       required: true,
       options: [
-        { label: 'Condiciones del servicio', value: 'terms' },
-        { label: 'Información de privacidad', value: 'privacy' },
-        { label: 'Compartir datos con la droguería', value: 'share-with-chain' },
+        { label: 'Condiciones de venta y del servicio', value: 'terms' },
+        { label: 'Declaración de privacidad', value: 'privacy' },
+        { label: 'Tratamiento de datos de seguimiento (plan, tomas, revisiones)', value: 'tracking-data' },
       ],
     },
-    { name: 'chain', label: 'Cadena (si aplica)', type: 'relationship', relationTo: 'chains' },
     { name: 'version', label: 'Versión del texto', type: 'text', required: true },
     { name: 'grantedAt', label: 'Otorgado el', type: 'date', admin: { readOnly: true } },
     { name: 'revokedAt', label: 'Revocado el', type: 'date' },

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
-import { hiddenUnless, newtonsAdmin, nobody } from '@/access'
+import { admin, hiddenUnless, nobody } from '@/access'
 
 export const AuditLog: CollectionConfig = {
   slug: 'audit-log',
@@ -9,9 +9,9 @@ export const AuditLog: CollectionConfig = {
     group: 'Sistema',
     useAsTitle: 'targetCollection',
     defaultColumns: ['createdAt', 'targetCollection', 'targetId', 'operation', 'actorCollection', 'actorId', 'reason'],
-    hidden: hiddenUnless('newtons-admin'),
+    hidden: hiddenUnless('admin'),
   },
-  access: { read: newtonsAdmin, create: nobody, update: nobody, delete: nobody },
+  access: { read: admin, create: nobody, update: nobody, delete: nobody },
   fields: [
     { name: 'targetCollection', label: 'Colección', type: 'text', required: true, index: true },
     { name: 'targetId', label: 'Documento', type: 'text', required: true, index: true },

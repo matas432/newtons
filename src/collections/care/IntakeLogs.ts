@@ -1,12 +1,13 @@
 import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from 'payload'
 
-import { healthDataRead, isCustomer, nobody } from '@/access'
-import { inheritFrom } from '@/hooks/careContext'
+import { customersOnly, nobody, ownDataOnly } from '@/access'
+import { inheritCustomer } from '@/hooks/careContext'
 
 /**
- * Registro de tomas. Libro 1, cap. 7: no responder a un recordatorio no
- * equivale a confirmar una toma. «Sin registro» es la ausencia de documento;
- * nunca se crea automáticamente un «tomado». Los registros se pueden corregir.
+ * Registro de tomas. Un recordatorio no respondido no equivale a una toma:
+ * «sin registro» es la ausencia de documento y nunca se crea un «tomado»
+ * automáticamente. Los registros se pueden corregir; cancelar o devolver un
+ * pedido no los borra (Libro 1 v2.0, cap. 15).
  */
 const stamp: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => {
   if (operation === 'create') data.loggedAt = new Date().toISOString()
@@ -14,7 +15,7 @@ const stamp: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => 
     data.correctedAt = new Date().toISOString()
   }
   if (data.status === 'taken' && (data.servings == null || data.servings <= 0)) {
-    throw new APIError('Indica cuántas unidades se tomaron.', 400, undefined, true)
+    throw new APIError('Indica cuántas unidades tomaste.', 400, undefined, true)
   }
   return data
 }
@@ -22,29 +23,22 @@ const stamp: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => 
 export const IntakeLogs: CollectionConfig = {
   slug: 'intake-logs',
   labels: { singular: 'Registro de toma', plural: 'Registro de tomas' },
-  admin: { group: 'Clientes y planes', useAsTitle: 'date', defaultColumns: ['date', 'planItem', 'status', 'servings'] },
-  access: {
-    read: healthDataRead(),
-    create: ({ req: { user } }) => isCustomer(user),
-    update: ({ req: { user } }) => (isCustomer(user) ? { customer: { equals: user.id } } : false),
-    delete: nobody,
-  },
-  hooks: { beforeChange: [inheritFrom('planItem', 'plan-items'), stamp] },
+  admin: { group: 'Seguimiento del cliente', useAsTitle: 'date', defaultColumns: ['date', 'planItem', 'intakeIndex', 'status', 'servings'] },
+  access: { read: ownDataOnly(), create: customersOnly, update: ownDataOnly(), delete: nobody },
+  hooks: { beforeChange: [inheritCustomer('planItem', 'plan-items'), stamp] },
   fields: [
-    { name: 'planItem', label: 'Línea del plan', type: 'relationship', relationTo: 'plan-items', required: true, index: true },
     {
       type: 'row',
       fields: [
+        { name: 'planItem', label: 'Línea del plan', type: 'relationship', relationTo: 'plan-items', required: true, index: true },
         { name: 'customer', label: 'Cliente', type: 'relationship', relationTo: 'customers', index: true, admin: { readOnly: true } },
-        { name: 'chain', label: 'Cadena', type: 'relationship', relationTo: 'chains', index: true, admin: { readOnly: true } },
-        { name: 'store', label: 'Establecimiento', type: 'relationship', relationTo: 'stores', admin: { readOnly: true } },
       ],
     },
     {
       type: 'row',
       fields: [
         { name: 'date', label: 'Día', type: 'text', required: true, index: true, validate: (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) || 'Formato AAAA-MM-DD' },
-        { name: 'block', label: 'Bloque', type: 'relationship', relationTo: 'blocks' },
+        { name: 'intakeIndex', label: 'Toma n.º (de la línea)', type: 'number', defaultValue: 0, min: 0 },
         {
           name: 'status',
           label: 'Estado',

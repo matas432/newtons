@@ -18,8 +18,9 @@ export interface CompositionRow {
 export interface DoseLine {
   planItemId: string | number
   productName: string
-  servingsPerIntake: number
-  /** La línea tiene una toma programada ese día. */
+  /** Unidades programadas ese día (suma de las tomas declaradas de la línea). */
+  servingsPerDay: number
+  /** La línea tiene tomas programadas ese día. */
   scheduled: boolean
   formulationVerified: boolean
   composition: CompositionRow[]
@@ -63,7 +64,7 @@ export function dailyTotals(lines: DoseLine[], intakes: IntakeRecord[]): DailyTo
 
   for (const line of lines) {
     const taken = takenServings.get(String(line.planItemId)) ?? 0
-    const scheduledServings = line.scheduled ? line.servingsPerIntake : 0
+    const scheduledServings = line.scheduled ? line.servingsPerDay : 0
     if (scheduledServings === 0 && taken === 0) continue
 
     if (!line.formulationVerified) {

@@ -63,8 +63,8 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
-    users: UserAuthOperations;
     customers: CustomerAuthOperations;
+    users: UserAuthOperations;
   };
   blocks: {};
   collections: {
@@ -75,21 +75,24 @@ export interface Config {
     sources: Source;
     products: Product;
     formulations: Formulation;
-    chains: Chain;
-    stores: Store;
-    assortment: Assortment;
-    users: User;
+    suppliers: Supplier;
+    'product-submissions': ProductSubmission;
+    lots: Lot;
+    'stock-movements': StockMovement;
+    orders: Order;
+    'payment-events': PaymentEvent;
     customers: Customer;
-    'customer-links': CustomerLink;
-    invitations: Invitation;
     consents: Consent;
+    'customer-products': CustomerProduct;
     plans: Plan;
     'plan-items': PlanItem;
     'intake-logs': IntakeLog;
     reviews: Review;
     'symptom-reports': SymptomReport;
+    users: User;
     'audit-log': AuditLog;
     media: Media;
+    'private-files': PrivateFile;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -104,21 +107,24 @@ export interface Config {
     sources: SourcesSelect<false> | SourcesSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
     formulations: FormulationsSelect<false> | FormulationsSelect<true>;
-    chains: ChainsSelect<false> | ChainsSelect<true>;
-    stores: StoresSelect<false> | StoresSelect<true>;
-    assortment: AssortmentSelect<false> | AssortmentSelect<true>;
-    users: UsersSelect<false> | UsersSelect<true>;
+    suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
+    'product-submissions': ProductSubmissionsSelect<false> | ProductSubmissionsSelect<true>;
+    lots: LotsSelect<false> | LotsSelect<true>;
+    'stock-movements': StockMovementsSelect<false> | StockMovementsSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
+    'payment-events': PaymentEventsSelect<false> | PaymentEventsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
-    'customer-links': CustomerLinksSelect<false> | CustomerLinksSelect<true>;
-    invitations: InvitationsSelect<false> | InvitationsSelect<true>;
     consents: ConsentsSelect<false> | ConsentsSelect<true>;
+    'customer-products': CustomerProductsSelect<false> | CustomerProductsSelect<true>;
     plans: PlansSelect<false> | PlansSelect<true>;
     'plan-items': PlanItemsSelect<false> | PlanItemsSelect<true>;
     'intake-logs': IntakeLogsSelect<false> | IntakeLogsSelect<true>;
     reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     'symptom-reports': SymptomReportsSelect<false> | SymptomReportsSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'audit-log': AuditLogSelect<false> | AuditLogSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'private-files': PrivateFilesSelect<false> | PrivateFilesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -127,20 +133,24 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('es' | 'de-CH') | ('es' | 'de-CH')[];
-  globals: {};
-  globalsSelect: {};
-  locale: 'es' | 'de-CH';
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('es' | 'de' | 'en') | ('es' | 'de' | 'en')[];
+  globals: {
+    'shop-settings': ShopSetting;
+  };
+  globalsSelect: {
+    'shop-settings': ShopSettingsSelect<false> | ShopSettingsSelect<true>;
+  };
+  locale: 'es' | 'de' | 'en';
   widgets: {
     collections: CollectionsWidget;
   };
-  user: User | Customer;
+  user: Customer | User;
   jobs: {
     tasks: unknown;
     workflows: unknown;
   };
 }
-export interface UserAuthOperations {
+export interface CustomerAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -158,7 +168,7 @@ export interface UserAuthOperations {
     password: string;
   };
 }
-export interface CustomerAuthOperations {
+export interface UserAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -493,6 +503,10 @@ export interface Ingredient {
    */
   editorialStatus: 'draft' | 'in-review' | 'approved' | 'historical' | 'retired';
   /**
+   * Solo los productos cuyos ingredientes funcionales están en el pool pueden venderse o añadirse a un plan (Libro 1 v2.0, cap. 2). Cambiarlo requiere rol de revisión.
+   */
+  poolStatus: 'in-pool' | 'candidate' | 'historical' | 'excluded';
+  /**
    * Un idioma no aprobado no se muestra al cliente (Libro 2, n.º 36).
    */
   translationStatus?: ('not-started' | 'draft' | 'reviewed' | 'approved') | null;
@@ -582,13 +596,10 @@ export interface Rhythm {
 export interface User {
   id: number;
   name: string;
-  role: 'newtons-admin' | 'editor' | 'reviewer' | 'chain-admin' | 'staff';
-  chain?: (number | null) | Chain;
+  role: 'admin' | 'editor' | 'reviewer' | 'operations' | 'support';
   /**
-   * Vacío = todos los de la cadena.
+   * Solo informativo. No concede permisos.
    */
-  stores?: (number | Store)[] | null;
-  permissions?: ('invite' | 'prepare-plans' | 'confirm-plans' | 'view-shared-data')[] | null;
   professionalTitle?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -612,82 +623,26 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "chains".
- */
-export interface Chain {
-  id: number;
-  name: string;
-  slug: string;
-  /**
-   * Libro 2, n.º 34: logo, colores, nombre, contacto y bienvenida. Nada fijo en el código.
-   */
-  branding: {
-    displayName: string;
-    logo?: (number | null) | Media;
-    primaryColor?: string | null;
-    accentColor?: string | null;
-    welcomeMessage?: string | null;
-    coBranding?: 'shared' | null;
-  };
-  contact?: {
-    email?: string | null;
-    phone?: string | null;
-  };
-  isFictional?: boolean | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "stores".
- */
-export interface Store {
-  id: number;
-  chain: number | Chain;
-  name: string;
-  street?: string | null;
-  postalCode?: string | null;
-  city?: string | null;
-  phone?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "products".
  */
 export interface Product {
   id: number;
   name: string;
+  slug?: string | null;
   brand?: string | null;
   manufacturer?: string | null;
   form: 'capsule' | 'softgel' | 'tablet' | 'powder' | 'liquid' | 'gummy' | 'other';
   /**
-   * p. ej. «cápsula», «medida de 5 g»
+   * p. ej. «Kapsel», «capsule»
    */
   servingUnit: string;
   unitsPerContainer?: number | null;
   /**
-   * Identificador, no prueba de composición (Libro 2, n.º 11).
+   * Sin declaraciones de salud: describe el producto, no sus efectos.
+   */
+  shortDescription?: string | null;
+  /**
+   * Identificador, no prueba de composición.
    */
   gtin?: string[] | null;
   /**
@@ -695,12 +650,40 @@ export interface Product {
    */
   currentFormulation?: (number | null) | Formulation;
   labelImages?: (number | Media)[] | null;
-  status: 'active' | 'discontinued';
-  isFictional?: boolean | null;
+  sku?: string | null;
+  price?: number | null;
   /**
-   * Producto comprado fuera de la cadena, pendiente de verificación (Libro 2, n.º 12).
+   * Confirmar con asesoría fiscal.
    */
-  submittedByCustomer?: (number | null) | Customer;
+  vatRate?: number | null;
+  supplier?: (number | null) | Supplier;
+  /**
+   * Para calcular el peso del paquete.
+   */
+  weightGrams?: number | null;
+  /**
+   * Solo lo que podamos justificar. «Fabricado en Suiza» no convierte toda materia prima en suiza (Libro 1 v2.0, cap. 3).
+   */
+  origin?: {
+    countryOfManufacture?: string | null;
+    packagingPlace?: string | null;
+    responsibleCompany?: string | null;
+    ingredientOrigin?: string | null;
+    evidence?: string | null;
+  };
+  storage?: {
+    conditions?: string | null;
+    /**
+     * Si se marca, no puede venderse con envío estándar.
+     */
+    coldChainRequired?: boolean | null;
+  };
+  kind: 'catalog' | 'external';
+  /**
+   * Poner a la venta exige formulación verificada, pool, ficha aprobada, proveedor, precio y origen.
+   */
+  saleStatus: 'not-for-sale' | 'for-sale' | 'paused' | 'discontinued';
+  isFictional?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -731,6 +714,15 @@ export interface Formulation {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Lo que dice el fabricante. Se muestra al cliente como referencia; nunca se convierte en una pauta personal (Libro 1 v2.0, cap. 4).
+   */
+  labelInfo?: {
+    directions?: string | null;
+    dailyUnitsMin?: number | null;
+    dailyUnitsMax?: number | null;
+    warnings?: string | null;
+  };
   excipients?: string | null;
   allergens?: string | null;
   verificationStatus: 'pending' | 'verified' | 'rejected' | 'superseded';
@@ -746,18 +738,94 @@ export interface Formulation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "suppliers".
+ */
+export interface Supplier {
+  id: number;
+  name: string;
+  status: 'candidate' | 'confirmed' | 'inactive';
+  country?: string | null;
+  website?: string | null;
+  contact?: {
+    person?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  };
+  /**
+   * Precio profesional, IVA, mínimos, transporte de entrada, plazos de pago, permisos de reventa y uso de imágenes.
+   */
+  terms?: {
+    summary?: string | null;
+    minimumOrder?: string | null;
+    paymentTerms?: string | null;
+    inboundShipping?: string | null;
+    resaleRights?: string | null;
+    documents?: (number | Media)[] | null;
+  };
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-submissions".
+ */
+export interface ProductSubmission {
+  id: number;
+  customer: number | Customer;
+  productName: string;
+  manufacturer: string;
+  declaredIngredients?:
+    | {
+        ingredient: number | Ingredient;
+        amountText?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Si se rellena, el producto no se incorpora al plan: queda como solicitud de ampliación del catálogo.
+   */
+  otherIngredients?: string | null;
+  photos?: (number | PrivateFile)[] | null;
+  status: 'pending-verification' | 'verified' | 'rejected' | 'out-of-pool';
+  /**
+   * Producto (tipo «externo») con su composición verificada: producto, fabricante, molécula, forma, cantidad, composición, etiqueta y versión.
+   */
+  resultProduct?: (number | null) | Product;
+  reviewNote?: string | null;
+  verifiedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "customers".
  */
 export interface Customer {
   id: number;
   alias: string;
-  language: 'es' | 'de-CH';
+  language: 'de' | 'en';
   adultConfirmed: boolean;
   timezone?: string | null;
-  /**
-   * Se mantiene automáticamente desde las vinculaciones activas.
-   */
-  linkedChains?: (number | Chain)[] | null;
   isFictional?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -767,6 +835,8 @@ export interface Customer {
   salt?: string | null;
   hash?: string | null;
   resetPasswordRequestedAt?: string | null;
+  _verified?: boolean | null;
+  _verificationToken?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
   sessions?:
@@ -781,52 +851,160 @@ export interface Customer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "assortment".
+ * via the `definition` "private-files".
  */
-export interface Assortment {
+export interface PrivateFile {
   id: number;
-  chain: number | Chain;
+  owner?: (number | null) | Customer;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lots".
+ */
+export interface Lot {
+  id: number;
   product: number | Product;
+  lotNumber: string;
+  expiryDate: string;
   /**
-   * Vacío = toda la cadena.
+   * Por defecto, la vigente al recibirlo.
    */
-  stores?: (number | Store)[] | null;
-  internalCode?: string | null;
-  active?: boolean | null;
+  formulation?: (number | null) | Formulation;
+  supplier?: (number | null) | Supplier;
+  receivedOn?: string | null;
+  /**
+   * Solo al crear. Después, cualquier cambio de cantidad es un movimiento de stock.
+   */
+  quantityReceived?: number | null;
+  supplierDocument?: string | null;
+  storageLocation?: string | null;
+  status: 'available' | 'held' | 'recalled';
+  statusNote?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-links".
+ * via the `definition` "stock-movements".
  */
-export interface CustomerLink {
+export interface StockMovement {
   id: number;
-  customer: number | Customer;
-  chain: number | Chain;
-  store: number | Store;
-  status: 'active' | 'revoked' | 'ended';
-  sharing?: ('plan' | 'intake-logs' | 'reviews' | 'symptom-reports')[] | null;
-  identityVerified?: boolean | null;
-  invitedBy?: (number | null) | User;
-  endedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "invitations".
- */
-export interface Invitation {
-  id: number;
-  email: string;
-  chain: number | Chain;
-  store: number | Store;
-  status: 'pending' | 'accepted' | 'revoked';
-  token?: string | null;
-  expiresAt?: string | null;
+  lot: number | Lot;
+  product: number | Product;
+  kind: 'receipt' | 'shipment' | 'return' | 'release' | 'hold' | 'write-off' | 'adjustment';
+  bucket: 'sellable' | 'held';
+  quantity: number;
+  order?: (number | null) | Order;
+  reason: string;
   createdBy?: (number | null) | User;
-  customer?: (number | null) | Customer;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  orderNumber: string;
+  customer: number | Customer;
+  email?: string | null;
+  language?: ('de' | 'en') | null;
+  /**
+   * Producto, versión de composición y precio en el momento de la compra.
+   */
+  lines?:
+    | {
+        product: number | Product;
+        formulation: number | Formulation;
+        productName: string;
+        quantity: number;
+        unitPriceCents: number;
+        vatRate?: number | null;
+        lots?:
+          | {
+              lot: number | Lot;
+              quantity: number;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  totals?: {
+    subtotalCents?: number | null;
+    shippingCents?: number | null;
+    vatCents?: number | null;
+    totalCents?: number | null;
+  };
+  shippingAddress: {
+    name: string;
+    street: string;
+    addressLine2?: string | null;
+    postalCode: string;
+    city: string;
+    country?: string | null;
+  };
+  shippingMethod?: {
+    code?: string | null;
+    label?: string | null;
+    priceCents?: number | null;
+  };
+  payment?: {
+    provider?: ('simulated' | 'stripe' | 'payrexx') | null;
+    status?: ('pending' | 'succeeded' | 'failed') | null;
+    reference?: string | null;
+    paidAt?: string | null;
+  };
+  shipment?: {
+    trackingNumber?: string | null;
+    depositedOn?: string | null;
+    weightGrams?: number | null;
+    deliveredOn?: string | null;
+  };
+  /**
+   * Las unidades devueltas entran como retenidas. Devolver no borra el historial de uso del cliente.
+   */
+  returns?:
+    | {
+        product: number | Product;
+        lot: number | Lot;
+        quantity: number;
+        reason?: string | null;
+        refundCents?: number | null;
+        processed?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  cancellationReason?: string | null;
+  incidents?: string | null;
+  status: 'pending-payment' | 'paid' | 'packed' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-events".
+ */
+export interface PaymentEvent {
+  id: number;
+  provider: 'simulated' | 'stripe' | 'payrexx';
+  eventId: string;
+  type: string;
+  order: number | Order;
+  amountCents: number;
+  outcome?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -837,11 +1015,30 @@ export interface Invitation {
 export interface Consent {
   id: number;
   customer: number | Customer;
-  kind: 'terms' | 'privacy' | 'share-with-chain';
-  chain?: (number | null) | Chain;
+  kind: 'terms' | 'privacy' | 'tracking-data';
   version: string;
   grantedAt?: string | null;
   revokedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-products".
+ */
+export interface CustomerProduct {
+  id: number;
+  customer: number | Customer;
+  product: number | Product;
+  /**
+   * La del envase del cliente. No cambia sola si el fabricante cambia la fórmula.
+   */
+  formulation?: (number | null) | Formulation;
+  status: 'suggested' | 'active' | 'archived';
+  source?: ('purchase' | 'external' | 'added-by-customer') | null;
+  order?: (number | null) | Order;
+  submission?: (number | null) | ProductSubmission;
+  confirmedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -851,20 +1048,16 @@ export interface Consent {
  */
 export interface Plan {
   id: number;
-  title: string;
   customer: number | Customer;
-  chain: number | Chain;
-  store?: (number | null) | Store;
-  goal?: string | null;
-  status: 'draft' | 'pending-confirmation' | 'active' | 'ended';
-  preparedBy?: (number | null) | User;
-  confirmedBy?: (number | null) | User;
-  confirmedAt?: string | null;
   /**
-   * Obligatorio al modificar un plan que no es borrador.
+   * Separada del plan del cliente. Solo cambia si un profesional revisa realmente el plan.
    */
-  changeReason?: string | null;
-  professionalNotes?: string | null;
+  professionalReview: {
+    status: 'not-reviewed' | 'requested' | 'reviewed';
+    reviewer?: (number | null) | User;
+    reviewedAt?: string | null;
+    note?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -874,40 +1067,45 @@ export interface Plan {
  */
 export interface PlanItem {
   id: number;
-  plan: number | Plan;
-  customer?: (number | null) | Customer;
-  chain?: (number | null) | Chain;
-  store?: (number | null) | Store;
-  product: number | Product;
-  /**
-   * Por defecto, la vigente al crear la línea. No cambia sola.
-   */
+  customer: number | Customer;
+  plan?: (number | null) | Plan;
+  customerProduct: number | CustomerProduct;
+  product?: (number | null) | Product;
   formulation?: (number | null) | Formulation;
-  servingsPerIntake: number;
-  block?: (number | null) | Block;
-  /**
-   * El cliente puede cambiarla; no altera la pauta.
-   */
-  reminderTime?: string | null;
-  instructions?: string | null;
+  intakes?:
+    | {
+        block: number | Block;
+        time?: string | null;
+        servings: number;
+        id?: string | null;
+      }[]
+    | null;
+  note?: string | null;
   scheduleType: 'daily' | 'weekdays' | 'selective';
   weekdays?: ('mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun')[] | null;
   selectiveCircumstances?: string | null;
-  selectiveMaxPerDay?: number | null;
-  selectiveMinIntervalHours?: number | null;
-  rhythm?: (number | null) | Rhythm;
   /**
-   * AAAA-MM-DD
+   * La elige el cliente. La compra o la entrega no la fijan.
    */
   startDate: string;
+  rhythm?: (number | null) | Rhythm;
+  reviewOn?: string | null;
   continuous?: boolean | null;
   useWeeks?: number | null;
   pauseWeeks?: number | null;
   reviewEveryWeeks?: number | null;
   pauseIsMinimum?: boolean | null;
+  reviewQuestion?: string | null;
+  observations?:
+    | {
+        text: string;
+        answerType?: ('yes-no' | 'scale' | 'text') | null;
+        id?: string | null;
+      }[]
+    | null;
   status: 'active' | 'paused' | 'interrupted' | 'ended';
   /**
-   * Libro 2, n.º 23: una pausa no alarga ni reinicia el ciclo.
+   * Una pausa no alarga ni reinicia el ciclo.
    */
   pauses?:
     | {
@@ -918,26 +1116,6 @@ export interface PlanItem {
       }[]
     | null;
   endedOn?: string | null;
-  reviewQuestion?: string | null;
-  observations?:
-    | {
-        text: string;
-        answerType?: ('yes-no' | 'scale' | 'text') | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Libro 2, n.º 20: se guardan como «pendiente de revisión»; no cambian la pauta aprobada.
-   */
-  declaredChanges?:
-    | {
-        description: string;
-        declaredAt?: string | null;
-        status?: ('pending' | 'reviewed') | null;
-        id?: string | null;
-      }[]
-    | null;
-  changeReason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -949,10 +1127,8 @@ export interface IntakeLog {
   id: number;
   planItem: number | PlanItem;
   customer?: (number | null) | Customer;
-  chain?: (number | null) | Chain;
-  store?: (number | null) | Store;
   date: string;
-  block?: (number | null) | Block;
+  intakeIndex?: number | null;
   status: 'taken' | 'skipped' | 'postponed';
   servings?: number | null;
   note?: string | null;
@@ -969,8 +1145,6 @@ export interface Review {
   id: number;
   planItem: number | PlanItem;
   customer?: (number | null) | Customer;
-  chain?: (number | null) | Chain;
-  store?: (number | null) | Store;
   dueDate: string;
   kind: 'periodic' | 'end-of-use' | 'end-of-pause' | 'extra';
   status: 'pending' | 'answered' | 'closed';
@@ -991,9 +1165,7 @@ export interface Review {
     answeredAt?: string | null;
   };
   outcome?: ('continue' | 'adjust' | 'new-cycle' | 'simplify' | 'pause' | 'withdraw' | 'refer') | null;
-  decidedBy?: (number | null) | User;
-  decidedAt?: string | null;
-  professionalNotes?: string | null;
+  closedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1003,16 +1175,12 @@ export interface Review {
  */
 export interface SymptomReport {
   id: number;
-  planItem?: (number | null) | PlanItem;
   customer: number | Customer;
-  chain: number | Chain;
-  store?: (number | null) | Store;
+  planItem?: (number | null) | PlanItem;
   kind: 'question' | 'discomfort' | 'adherence' | 'stopped';
   severity?: ('mild' | 'moderate' | 'severe') | null;
-  status: 'open' | 'seen';
   description: string;
   reportedAt?: string | null;
-  seenBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -1085,36 +1253,40 @@ export interface PayloadLockedDocument {
         value: number | Formulation;
       } | null)
     | ({
-        relationTo: 'chains';
-        value: number | Chain;
+        relationTo: 'suppliers';
+        value: number | Supplier;
       } | null)
     | ({
-        relationTo: 'stores';
-        value: number | Store;
+        relationTo: 'product-submissions';
+        value: number | ProductSubmission;
       } | null)
     | ({
-        relationTo: 'assortment';
-        value: number | Assortment;
+        relationTo: 'lots';
+        value: number | Lot;
       } | null)
     | ({
-        relationTo: 'users';
-        value: number | User;
+        relationTo: 'stock-movements';
+        value: number | StockMovement;
+      } | null)
+    | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
+        relationTo: 'payment-events';
+        value: number | PaymentEvent;
       } | null)
     | ({
         relationTo: 'customers';
         value: number | Customer;
       } | null)
     | ({
-        relationTo: 'customer-links';
-        value: number | CustomerLink;
-      } | null)
-    | ({
-        relationTo: 'invitations';
-        value: number | Invitation;
-      } | null)
-    | ({
         relationTo: 'consents';
         value: number | Consent;
+      } | null)
+    | ({
+        relationTo: 'customer-products';
+        value: number | CustomerProduct;
       } | null)
     | ({
         relationTo: 'plans';
@@ -1137,22 +1309,30 @@ export interface PayloadLockedDocument {
         value: number | SymptomReport;
       } | null)
     | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
         relationTo: 'audit-log';
         value: number | AuditLog;
       } | null)
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'private-files';
+        value: number | PrivateFile;
       } | null);
   globalSlug?: string | null;
   user:
     | {
-        relationTo: 'users';
-        value: number | User;
-      }
-    | {
         relationTo: 'customers';
         value: number | Customer;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
       };
   updatedAt: string;
   createdAt: string;
@@ -1165,12 +1345,12 @@ export interface PayloadPreference {
   id: number;
   user:
     | {
-        relationTo: 'users';
-        value: number | User;
-      }
-    | {
         relationTo: 'customers';
         value: number | Customer;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
       };
   key?: string | null;
   value?:
@@ -1359,6 +1539,7 @@ export interface IngredientsSelect<T extends boolean = true> {
   approvedAt?: T;
   internalNotes?: T;
   editorialStatus?: T;
+  poolStatus?: T;
   translationStatus?: T;
   regulatoryStatusCH?: T;
   regulatoryNote?: T;
@@ -1432,17 +1613,39 @@ export interface SourcesSelect<T extends boolean = true> {
  */
 export interface ProductsSelect<T extends boolean = true> {
   name?: T;
+  slug?: T;
   brand?: T;
   manufacturer?: T;
   form?: T;
   servingUnit?: T;
   unitsPerContainer?: T;
+  shortDescription?: T;
   gtin?: T;
   currentFormulation?: T;
   labelImages?: T;
-  status?: T;
+  sku?: T;
+  price?: T;
+  vatRate?: T;
+  supplier?: T;
+  weightGrams?: T;
+  origin?:
+    | T
+    | {
+        countryOfManufacture?: T;
+        packagingPlace?: T;
+        responsibleCompany?: T;
+        ingredientOrigin?: T;
+        evidence?: T;
+      };
+  storage?:
+    | T
+    | {
+        conditions?: T;
+        coldChainRequired?: T;
+      };
+  kind?: T;
+  saleStatus?: T;
   isFictional?: T;
-  submittedByCustomer?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1466,6 +1669,14 @@ export interface FormulationsSelect<T extends boolean = true> {
         extractDetails?: T;
         id?: T;
       };
+  labelInfo?:
+    | T
+    | {
+        directions?: T;
+        dailyUnitsMin?: T;
+        dailyUnitsMax?: T;
+        warnings?: T;
+      };
   excipients?: T;
   allergens?: T;
   verificationStatus?: T;
@@ -1478,86 +1689,191 @@ export interface FormulationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "chains_select".
+ * via the `definition` "suppliers_select".
  */
-export interface ChainsSelect<T extends boolean = true> {
+export interface SuppliersSelect<T extends boolean = true> {
   name?: T;
-  slug?: T;
-  branding?:
-    | T
-    | {
-        displayName?: T;
-        logo?: T;
-        primaryColor?: T;
-        accentColor?: T;
-        welcomeMessage?: T;
-        coBranding?: T;
-      };
+  status?: T;
+  country?: T;
+  website?: T;
   contact?:
     | T
     | {
+        person?: T;
         email?: T;
         phone?: T;
       };
-  isFictional?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "stores_select".
- */
-export interface StoresSelect<T extends boolean = true> {
-  chain?: T;
-  name?: T;
-  street?: T;
-  postalCode?: T;
-  city?: T;
-  phone?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "assortment_select".
- */
-export interface AssortmentSelect<T extends boolean = true> {
-  chain?: T;
-  product?: T;
-  stores?: T;
-  internalCode?: T;
-  active?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
- */
-export interface UsersSelect<T extends boolean = true> {
-  name?: T;
-  role?: T;
-  chain?: T;
-  stores?: T;
-  permissions?: T;
-  professionalTitle?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  resetPasswordRequestedAt?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
+  terms?:
     | T
     | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
+        summary?: T;
+        minimumOrder?: T;
+        paymentTerms?: T;
+        inboundShipping?: T;
+        resaleRights?: T;
+        documents?: T;
       };
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-submissions_select".
+ */
+export interface ProductSubmissionsSelect<T extends boolean = true> {
+  customer?: T;
+  productName?: T;
+  manufacturer?: T;
+  declaredIngredients?:
+    | T
+    | {
+        ingredient?: T;
+        amountText?: T;
+        id?: T;
+      };
+  otherIngredients?: T;
+  photos?: T;
+  status?: T;
+  resultProduct?: T;
+  reviewNote?: T;
+  verifiedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lots_select".
+ */
+export interface LotsSelect<T extends boolean = true> {
+  product?: T;
+  lotNumber?: T;
+  expiryDate?: T;
+  formulation?: T;
+  supplier?: T;
+  receivedOn?: T;
+  quantityReceived?: T;
+  supplierDocument?: T;
+  storageLocation?: T;
+  status?: T;
+  statusNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stock-movements_select".
+ */
+export interface StockMovementsSelect<T extends boolean = true> {
+  lot?: T;
+  product?: T;
+  kind?: T;
+  bucket?: T;
+  quantity?: T;
+  order?: T;
+  reason?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  orderNumber?: T;
+  customer?: T;
+  email?: T;
+  language?: T;
+  lines?:
+    | T
+    | {
+        product?: T;
+        formulation?: T;
+        productName?: T;
+        quantity?: T;
+        unitPriceCents?: T;
+        vatRate?: T;
+        lots?:
+          | T
+          | {
+              lot?: T;
+              quantity?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  totals?:
+    | T
+    | {
+        subtotalCents?: T;
+        shippingCents?: T;
+        vatCents?: T;
+        totalCents?: T;
+      };
+  shippingAddress?:
+    | T
+    | {
+        name?: T;
+        street?: T;
+        addressLine2?: T;
+        postalCode?: T;
+        city?: T;
+        country?: T;
+      };
+  shippingMethod?:
+    | T
+    | {
+        code?: T;
+        label?: T;
+        priceCents?: T;
+      };
+  payment?:
+    | T
+    | {
+        provider?: T;
+        status?: T;
+        reference?: T;
+        paidAt?: T;
+      };
+  shipment?:
+    | T
+    | {
+        trackingNumber?: T;
+        depositedOn?: T;
+        weightGrams?: T;
+        deliveredOn?: T;
+      };
+  returns?:
+    | T
+    | {
+        product?: T;
+        lot?: T;
+        quantity?: T;
+        reason?: T;
+        refundCents?: T;
+        processed?: T;
+        id?: T;
+      };
+  cancellationReason?: T;
+  incidents?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-events_select".
+ */
+export interface PaymentEventsSelect<T extends boolean = true> {
+  provider?: T;
+  eventId?: T;
+  type?: T;
+  order?: T;
+  amountCents?: T;
+  outcome?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1568,7 +1884,6 @@ export interface CustomersSelect<T extends boolean = true> {
   language?: T;
   adultConfirmed?: T;
   timezone?: T;
-  linkedChains?: T;
   isFictional?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1578,6 +1893,8 @@ export interface CustomersSelect<T extends boolean = true> {
   salt?: T;
   hash?: T;
   resetPasswordRequestedAt?: T;
+  _verified?: T;
+  _verificationToken?: T;
   loginAttempts?: T;
   lockUntil?: T;
   sessions?:
@@ -1590,44 +1907,11 @@ export interface CustomersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "customer-links_select".
- */
-export interface CustomerLinksSelect<T extends boolean = true> {
-  customer?: T;
-  chain?: T;
-  store?: T;
-  status?: T;
-  sharing?: T;
-  identityVerified?: T;
-  invitedBy?: T;
-  endedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "invitations_select".
- */
-export interface InvitationsSelect<T extends boolean = true> {
-  email?: T;
-  chain?: T;
-  store?: T;
-  status?: T;
-  token?: T;
-  expiresAt?: T;
-  createdBy?: T;
-  customer?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "consents_select".
  */
 export interface ConsentsSelect<T extends boolean = true> {
   customer?: T;
   kind?: T;
-  chain?: T;
   version?: T;
   grantedAt?: T;
   revokedAt?: T;
@@ -1636,20 +1920,34 @@ export interface ConsentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "customer-products_select".
+ */
+export interface CustomerProductsSelect<T extends boolean = true> {
+  customer?: T;
+  product?: T;
+  formulation?: T;
+  status?: T;
+  source?: T;
+  order?: T;
+  submission?: T;
+  confirmedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "plans_select".
  */
 export interface PlansSelect<T extends boolean = true> {
-  title?: T;
   customer?: T;
-  chain?: T;
-  store?: T;
-  goal?: T;
-  status?: T;
-  preparedBy?: T;
-  confirmedBy?: T;
-  confirmedAt?: T;
-  changeReason?: T;
-  professionalNotes?: T;
+  professionalReview?:
+    | T
+    | {
+        status?: T;
+        reviewer?: T;
+        reviewedAt?: T;
+        note?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1658,28 +1956,39 @@ export interface PlansSelect<T extends boolean = true> {
  * via the `definition` "plan-items_select".
  */
 export interface PlanItemsSelect<T extends boolean = true> {
-  plan?: T;
   customer?: T;
-  chain?: T;
-  store?: T;
+  plan?: T;
+  customerProduct?: T;
   product?: T;
   formulation?: T;
-  servingsPerIntake?: T;
-  block?: T;
-  reminderTime?: T;
-  instructions?: T;
+  intakes?:
+    | T
+    | {
+        block?: T;
+        time?: T;
+        servings?: T;
+        id?: T;
+      };
+  note?: T;
   scheduleType?: T;
   weekdays?: T;
   selectiveCircumstances?: T;
-  selectiveMaxPerDay?: T;
-  selectiveMinIntervalHours?: T;
-  rhythm?: T;
   startDate?: T;
+  rhythm?: T;
+  reviewOn?: T;
   continuous?: T;
   useWeeks?: T;
   pauseWeeks?: T;
   reviewEveryWeeks?: T;
   pauseIsMinimum?: T;
+  reviewQuestion?: T;
+  observations?:
+    | T
+    | {
+        text?: T;
+        answerType?: T;
+        id?: T;
+      };
   status?: T;
   pauses?:
     | T
@@ -1690,23 +1999,6 @@ export interface PlanItemsSelect<T extends boolean = true> {
         id?: T;
       };
   endedOn?: T;
-  reviewQuestion?: T;
-  observations?:
-    | T
-    | {
-        text?: T;
-        answerType?: T;
-        id?: T;
-      };
-  declaredChanges?:
-    | T
-    | {
-        description?: T;
-        declaredAt?: T;
-        status?: T;
-        id?: T;
-      };
-  changeReason?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1717,10 +2009,8 @@ export interface PlanItemsSelect<T extends boolean = true> {
 export interface IntakeLogsSelect<T extends boolean = true> {
   planItem?: T;
   customer?: T;
-  chain?: T;
-  store?: T;
   date?: T;
-  block?: T;
+  intakeIndex?: T;
   status?: T;
   servings?: T;
   note?: T;
@@ -1736,8 +2026,6 @@ export interface IntakeLogsSelect<T extends boolean = true> {
 export interface ReviewsSelect<T extends boolean = true> {
   planItem?: T;
   customer?: T;
-  chain?: T;
-  store?: T;
   dueDate?: T;
   kind?: T;
   status?: T;
@@ -1760,9 +2048,7 @@ export interface ReviewsSelect<T extends boolean = true> {
         answeredAt?: T;
       };
   outcome?: T;
-  decidedBy?: T;
-  decidedAt?: T;
-  professionalNotes?: T;
+  closedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1771,18 +2057,40 @@ export interface ReviewsSelect<T extends boolean = true> {
  * via the `definition` "symptom-reports_select".
  */
 export interface SymptomReportsSelect<T extends boolean = true> {
-  planItem?: T;
   customer?: T;
-  chain?: T;
-  store?: T;
+  planItem?: T;
   kind?: T;
   severity?: T;
-  status?: T;
   description?: T;
   reportedAt?: T;
-  seenBy?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  role?: T;
+  professionalTitle?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1805,6 +2113,24 @@ export interface AuditLogSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "private-files_select".
+ */
+export interface PrivateFilesSelect<T extends boolean = true> {
+  owner?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -1856,6 +2182,56 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-settings".
+ */
+export interface ShopSetting {
+  id: number;
+  /**
+   * Se cobra el transporte de forma transparente; sin umbral gratuito hasta calcularlo (Libro 1 v2.0, cap. 11).
+   */
+  shippingOptions?:
+    | {
+        code: string;
+        label: string;
+        price: number;
+        maxWeightGrams?: number | null;
+        deliveryNote?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  minShelfLifeDays: number;
+  preparationNote?: string | null;
+  /**
+   * Vacío = el del primer artículo. Confirmar con asesoría fiscal.
+   */
+  shippingVatRate?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shop-settings_select".
+ */
+export interface ShopSettingsSelect<T extends boolean = true> {
+  shippingOptions?:
+    | T
+    | {
+        code?: T;
+        label?: T;
+        price?: T;
+        maxWeightGrams?: T;
+        deliveryNote?: T;
+        id?: T;
+      };
+  minShelfLifeDays?: T;
+  preparationNote?: T;
+  shippingVatRate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

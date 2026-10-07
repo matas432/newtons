@@ -1,6 +1,6 @@
 import type { CollectionConfig, Field } from 'payload'
 
-import { approvedOrStaff, editorial } from '@/access'
+import { approvedOrStaff, canApprove, editorial } from '@/access'
 import { editorialWorkflow } from '@/hooks/editorialWorkflow'
 import {
   AMOUNT_BASIS,
@@ -426,6 +426,24 @@ export const Ingredients: CollectionConfig = {
       defaultValue: 'draft',
       options: EDITORIAL_STATUS,
       admin: { position: 'sidebar', description: 'Solo las fichas aprobadas se publican. Aprobar requiere rol de revisión.' },
+    },
+    {
+      name: 'poolStatus',
+      label: 'Pool de conocimiento',
+      type: 'select',
+      required: true,
+      defaultValue: 'candidate',
+      options: [
+        { label: 'En el pool (documentada y aprobada)', value: 'in-pool' },
+        { label: 'Candidata', value: 'candidate' },
+        { label: 'Histórica o pendiente', value: 'historical' },
+        { label: 'Excluida', value: 'excluded' },
+      ],
+      access: { update: ({ req: { user } }) => canApprove(user) },
+      admin: {
+        position: 'sidebar',
+        description: 'Solo los productos cuyos ingredientes funcionales están en el pool pueden venderse o añadirse a un plan (Libro 1 v2.0, cap. 2). Cambiarlo requiere rol de revisión.',
+      },
     },
     {
       name: 'translationStatus',

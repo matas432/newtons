@@ -8,24 +8,29 @@ const ORDER: CollectionSlug[] = [
   'intake-logs',
   'plan-items',
   'plans',
+  'customer-products',
+  'product-submissions',
+  'private-files',
+  'payment-events',
+  'stock-movements',
+  'orders',
+  'lots',
   'consents',
-  'invitations',
-  'customer-links',
   'customers',
-  'assortment',
   'formulations',
   'products',
+  'suppliers',
   'ingredients',
   'sources',
   'users',
-  'stores',
-  'chains',
   'blocks',
   'rhythms',
   'domains',
 ]
 
 export async function resetDatabase(payload: Payload) {
+  // Romper la referencia circular producto ↔ formulación antes de borrar.
+  await payload.update({ collection: 'products', where: { id: { exists: true } }, data: { currentFormulation: null }, overrideAccess: true, context: { skipGuards: true } })
   for (const collection of ORDER) {
     await payload.delete({ collection, where: { id: { exists: true } }, overrideAccess: true })
   }

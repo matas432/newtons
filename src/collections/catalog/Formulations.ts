@@ -1,16 +1,21 @@
 import { APIError, type CollectionBeforeChangeHook, type CollectionAfterChangeHook, type CollectionConfig } from 'payload'
 
-import { anyStaff, canApprove, editorial, idOf, isCustomer, isStaffUser } from '@/access'
+import { canApprove, editorial, idOf, isStaffUser } from '@/access'
 import { auditTrail } from '@/hooks/auditTrail'
 import { AMOUNT_BASIS, AMOUNT_UNITS } from '@/lib/options'
 
 /**
  * Formulación = composición exacta de un producto en una versión concreta.
  * Una formulación verificada no se modifica: un cambio de fórmula crea otra
- * versión y no altera el historial de ningún cliente (Libro 2, n.º 10).
+ * versión y no altera el historial de ningún cliente.
+ *
+ * Verificar exige que cada ingrediente funcional esté en el pool de
+ * conocimiento y tenga cantidad declarada: compartir molécula no valida por sí
+ * solo un producto comercial (Libro 1 v2.0, cap. 2).
  */
 
-const guardVerified: CollectionBeforeChangeHook = async ({ data, originalDoc, req, operation }) => {
+const guardVerified: CollectionBeforeChangeHook = async ({ data, originalDoc, req, operation, context }) => {
+  if (context?.skipGuards) return data
   const user = req.user
   if (operation === 'create' && data.product != null && data.version == null) {
     const existing = await req.payload.count({ collection: 'formulations', where: { product: { equals: idOf(data.product) } }, req })
@@ -21,6 +26,15 @@ const guardVerified: CollectionBeforeChangeHook = async ({ data, originalDoc, re
   if (becomesVerified) {
     if (!canApprove(user)) throw new APIError('Solo la revisión profesional puede verificar una composición.', 403, undefined, true)
     if (!data.source) throw new APIError('Una composición verificada necesita fuente.', 400, undefined, true)
+    const rows = data.composition ?? []
+    if (!rows.length) throw new APIError('Una composición verificada necesita al menos un ingrediente.', 400, undefined, true)
+    const problems: string[] = []
+    for (const row of rows) {
+      const ing = await req.payload.findByID({ collection: 'ingredients', id: idOf(row.ingredient)!, depth: 0, req, overrideAccess: true })
+      if (ing.poolStatus !== 'in-pool') problems.push(`«${ing.name}» no está en el pool`)
+      if (row.amount == null || !row.unit) problems.push(`falta la cantidad de «${ing.name}»`)
+    }
+    if (problems.length) throw new APIError(`No se puede verificar: ${problems.join('; ')}.`, 400, undefined, true)
     if (isStaffUser(user)) data.verifiedBy = user.id
     data.verifiedAt = new Date().toISOString()
   }
@@ -40,6 +54,11 @@ const normalize = (rows: any[] | undefined) =>
 
 const promoteToCurrent: CollectionAfterChangeHook = async ({ doc, previousDoc, req }) => {
   if (doc.verificationStatus === 'verified' && previousDoc?.verificationStatus !== 'verified') {
+    const product = await req.payload.findByID({ collection: 'products', id: idOf(doc.product)!, depth: 0, req, overrideAccess: true })
+    const previous = idOf(product.currentFormulation)
+    if (previous != null && String(previous) !== String(doc.id)) {
+      await req.payload.update({ collection: 'formulations', id: previous, data: { verificationStatus: 'superseded' }, req, overrideAccess: true, context: { skipGuards: true } })
+    }
     await req.payload.update({
       collection: 'products',
       id: idOf(doc.product)!,
@@ -56,7 +75,8 @@ export const Formulations: CollectionConfig = {
   labels: { singular: 'Formulación', plural: 'Formulaciones' },
   admin: { group: 'Catálogo', useAsTitle: 'label', defaultColumns: ['label', 'product', 'version', 'verificationStatus'] },
   access: {
-    read: (args) => (isCustomer(args.req.user) ? true : anyStaff(args)),
+    // Composiciones verificadas: públicas. Pendientes o rechazadas: solo el equipo.
+    read: ({ req: { user } }) => (isStaffUser(user) ? true : { verificationStatus: { in: ['verified', 'superseded'] } }),
     create: editorial,
     update: editorial,
     delete: editorial,
@@ -112,6 +132,23 @@ export const Formulations: CollectionConfig = {
             { name: 'extractDetails', label: 'Extracto: especie, parte, DER, solvente, estandarización', type: 'text' },
           ],
         },
+      ],
+    },
+    {
+      name: 'labelInfo',
+      label: 'Indicaciones de la etiqueta',
+      type: 'group',
+      admin: { description: 'Lo que dice el fabricante. Se muestra al cliente como referencia; nunca se convierte en una pauta personal (Libro 1 v2.0, cap. 4).' },
+      fields: [
+        { name: 'directions', label: 'Modo de empleo según la etiqueta', type: 'textarea', localized: true },
+        {
+          type: 'row',
+          fields: [
+            { name: 'dailyUnitsMin', label: 'Unidades al día (mín.)', type: 'number', min: 0 },
+            { name: 'dailyUnitsMax', label: 'Unidades al día (máx.)', type: 'number', min: 0 },
+          ],
+        },
+        { name: 'warnings', label: 'Advertencias de la etiqueta', type: 'textarea', localized: true },
       ],
     },
     {

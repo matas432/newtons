@@ -1,29 +1,23 @@
-import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
-import { hasPermission, healthData, healthDataRead, isCustomer, isStaffUser, nobody } from '@/access'
+import { nobody, ownDataOnly } from '@/access'
 import { auditTrail } from '@/hooks/auditTrail'
-import { customerMayOnlyChange, inheritFrom } from '@/hooks/careContext'
+import { inheritCustomer, serverControlled } from '@/hooks/careContext'
 import { OBSERVATION_ANSWER_TYPES, REVIEW_OUTCOMES } from '@/lib/options'
 
 /**
- * Revisión de una línea del plan. El cliente responde primero en la app; el
- * profesional registra la decisión (Libro 2, n.º 24). La revisión no renueva
- * nada automáticamente y no demuestra causalidad.
+ * Revisión de una línea del plan. Se crea con las fechas del ciclo. El
+ * cliente responde y registra su decisión; nada se renueva ni se compra
+ * automáticamente, y las respuestas no demuestran causalidad.
  */
-const workflow: CollectionBeforeChangeHook = ({ data, originalDoc, req }) => {
-  const user = req.user
-  if (isCustomer(user) && data.answer && originalDoc?.status === 'pending') {
+const workflow: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
+  if (data.answer?.questionAnswer && originalDoc?.status === 'pending') {
     data.status = 'answered'
     data.answer.answeredAt = new Date().toISOString()
   }
-  const decides = data.outcome && data.outcome !== originalDoc?.outcome
-  if (decides) {
-    if (!hasPermission(user, 'confirm-plans')) {
-      throw new APIError('Solo un profesional autorizado registra la decisión.', 403, undefined, true)
-    }
-    if (isStaffUser(user)) data.decidedBy = user.id
-    data.decidedAt = new Date().toISOString()
+  if (data.outcome && data.outcome !== originalDoc?.outcome) {
     data.status = 'closed'
+    data.closedAt = new Date().toISOString()
   }
   return data
 }
@@ -31,30 +25,19 @@ const workflow: CollectionBeforeChangeHook = ({ data, originalDoc, req }) => {
 export const Reviews: CollectionConfig = {
   slug: 'reviews',
   labels: { singular: 'Revisión', plural: 'Revisiones' },
-  admin: { group: 'Clientes y planes', useAsTitle: 'dueDate', defaultColumns: ['dueDate', 'planItem', 'kind', 'status', 'outcome'] },
-  access: {
-    read: healthDataRead(),
-    create: ({ req: { user } }) => hasPermission(user, 'prepare-plans') || hasPermission(user, 'confirm-plans'),
-    update: (args) => {
-      const { user } = args.req
-      if (isCustomer(user)) return { and: [{ customer: { equals: user.id } }, { status: { equals: 'pending' } }] }
-      if (hasPermission(user, 'confirm-plans')) return healthData('confirm-plans')(args)
-      return false
-    },
-    delete: nobody,
-  },
+  defaultSort: 'dueDate',
+  admin: { group: 'Seguimiento del cliente', useAsTitle: 'dueDate', defaultColumns: ['dueDate', 'planItem', 'kind', 'status', 'outcome'] },
+  access: { read: ownDataOnly(), create: nobody, update: ownDataOnly(), delete: nobody },
   hooks: {
-    beforeChange: [inheritFrom('planItem', 'plan-items'), customerMayOnlyChange(['answer', 'status']), workflow],
+    beforeChange: [inheritCustomer('planItem', 'plan-items'), serverControlled(['dueDate', 'kind', 'reviewQuestion', 'closedAt', 'planItem']), workflow],
     afterChange: [auditTrail],
   },
   fields: [
-    { name: 'planItem', label: 'Línea del plan', type: 'relationship', relationTo: 'plan-items', required: true, index: true },
     {
       type: 'row',
       fields: [
+        { name: 'planItem', label: 'Línea del plan', type: 'relationship', relationTo: 'plan-items', required: true, index: true },
         { name: 'customer', label: 'Cliente', type: 'relationship', relationTo: 'customers', index: true, admin: { readOnly: true } },
-        { name: 'chain', label: 'Cadena', type: 'relationship', relationTo: 'chains', index: true, admin: { readOnly: true } },
-        { name: 'store', label: 'Establecimiento', type: 'relationship', relationTo: 'stores', admin: { readOnly: true } },
       ],
     },
     {
@@ -81,7 +64,7 @@ export const Reviews: CollectionConfig = {
           defaultValue: 'pending',
           options: [
             { label: 'Pendiente', value: 'pending' },
-            { label: 'Respondida por el cliente', value: 'answered' },
+            { label: 'Respondida', value: 'answered' },
             { label: 'Cerrada con decisión', value: 'closed' },
           ],
         },
@@ -119,7 +102,7 @@ export const Reviews: CollectionConfig = {
             },
             {
               name: 'adherence',
-              label: 'Seguimiento del plan',
+              label: 'Uso real',
               type: 'select',
               options: [
                 { label: 'Como estaba previsto', value: 'as-planned' },
@@ -136,11 +119,9 @@ export const Reviews: CollectionConfig = {
     {
       type: 'row',
       fields: [
-        { name: 'outcome', label: 'Decisión', type: 'select', options: REVIEW_OUTCOMES },
-        { name: 'decidedBy', label: 'Decidida por', type: 'relationship', relationTo: 'users', admin: { readOnly: true } },
-        { name: 'decidedAt', label: 'Decidida el', type: 'date', admin: { readOnly: true } },
+        { name: 'outcome', label: 'Decisión del cliente', type: 'select', options: REVIEW_OUTCOMES },
+        { name: 'closedAt', label: 'Cerrada el', type: 'date', admin: { readOnly: true } },
       ],
     },
-    { name: 'professionalNotes', label: 'Notas profesionales', type: 'textarea' },
   ],
 }
